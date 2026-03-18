@@ -1,0 +1,1 @@
+# FJ-prva-zapoctovka-writen-by-ai-
