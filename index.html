@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Konečné Automaty — NKA & DKA</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg:       #0a0c0f;
+  --bg2:      #0f1215;
+  --bg3:      #151920;
+  --bg4:      #1c2128;
+  --bg5:      #242b35;
+  --line:     rgba(255,255,255,0.06);
+  --line2:    rgba(255,255,255,0.1);
+  --text:     #cdd6e0;
+  --text2:    #7a8a9a;
+  --text3:    #3d4d5c;
+  --green:    #3dd68c;
+  --green2:   #1a6644;
+  --green-bg: rgba(61,214,140,0.07);
+  --red:      #f47174;
+  --red2:     #6b2c2e;
+  --red-bg:   rgba(244,113,116,0.07);
+  --blue:     #58a6ff;
+  --blue2:    #1a3a5c;
+  --amber:    #e3b341;
+  --purple:   #a371f7;
+  --cyan:     #39c5cf;
+
+  /* syntax */
+  --kw:   #ff7b72;
+  --fn:   #d2a8ff;
+  --str:  #a5d6ff;
+  --num:  #79c0ff;
+  --cm:   #3d5a6e;
+  --op:   #ffa657;
+  --cls:  #ffa657;
+  --dec:  #e3b341;
+}
+
+html,body{height:100%;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text);overflow-x:hidden}
+
+/* ── scrollbar ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:3px}
+
+/* ── header ── */
+header {
+  border-bottom:1px solid var(--line2);
+  padding:28px 48px 24px;
+  display:flex;align-items:flex-end;gap:24px;
+  position:sticky;top:0;z-index:10;
+  background:var(--bg);
+}
+.header-title{
+  font-family:'Syne',sans-serif;
+  font-weight:800;font-size:22px;
+  letter-spacing:-0.5px;
+  color:#fff;
+}
+.header-sub{
+  font-size:11px;color:var(--text3);
+  letter-spacing:0.08em;text-transform:uppercase;
+  padding-bottom:2px;
+}
+.header-badges{margin-left:auto;display:flex;gap:8px}
+.badge{
+  font-size:10px;font-weight:500;letter-spacing:0.06em;
+  padding:4px 10px;border-radius:4px;text-transform:uppercase;
+  border:1px solid;
+}
+.badge-nka{color:var(--cyan);border-color:rgba(57,197,207,0.3);background:rgba(57,197,207,0.06)}
+.badge-dka{color:var(--purple);border-color:rgba(163,113,247,0.3);background:rgba(163,113,247,0.06)}
+
+/* ── layout ── */
+.container{max-width:1400px;margin:0 auto;padding:40px 48px 80px}
+
+/* ── section title ── */
+.section-title{
+  font-family:'Syne',sans-serif;
+  font-size:13px;font-weight:700;
+  letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--text3);
+  margin-bottom:20px;
+  display:flex;align-items:center;gap:12px;
+}
+.section-title::after{content:'';flex:1;height:1px;background:var(--line)}
+
+/* ── automaton info bar ── */
+.info-bar{
+  background:var(--bg3);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:16px 20px;
+  margin-bottom:32px;
+  display:flex;gap:32px;align-items:flex-start;
+  font-size:12px;
+}
+.info-item{}
+.info-label{color:var(--text3);margin-bottom:4px;font-size:10px;letter-spacing:0.08em;text-transform:uppercase}
+.info-val{color:var(--text);line-height:1.8}
+.info-val span{
+  display:inline-block;
+  background:var(--bg5);
+  border:1px solid var(--line2);
+  border-radius:3px;
+  padding:1px 6px;
+  margin:1px 2px;
+  font-size:11px;
+  color:var(--cyan);
+}
+.info-val span.acc{color:var(--green)}
+.info-val span.init{color:var(--amber)}
+
+/* ── tabs ── */
+.tabs{display:flex;gap:2px;margin-bottom:0;position:relative;z-index:1}
+.tab{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;font-weight:500;
+  letter-spacing:0.04em;
+  padding:9px 18px;
+  border:1px solid var(--line);
+  border-bottom:none;
+  border-radius:8px 8px 0 0;
+  cursor:pointer;
+  background:var(--bg2);
+  color:var(--text3);
+  transition:all 0.15s;
+  user-select:none;
+}
+.tab:hover{color:var(--text2);background:var(--bg3)}
+.tab.active{
+  background:var(--bg3);
+  color:var(--text);
+  border-color:var(--line2);
+}
+
+.tab-panel{
+  display:none;
+  background:var(--bg3);
+  border:1px solid var(--line2);
+  border-radius:0 8px 8px 8px;
+  overflow:hidden;
+}
+.tab-panel.active{display:grid;grid-template-columns:1fr 1fr}
+
+/* ── code pane ── */
+.code-pane{border-right:1px solid var(--line)}
+.pane-header{
+  padding:12px 18px;
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg4);
+}
+.pane-title{font-size:11px;color:var(--text2);font-weight:500}
+.lang-badge{
+  margin-left:auto;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;
+  padding:2px 7px;border-radius:3px;
+  background:rgba(57,197,207,0.1);color:var(--cyan);border:1px solid rgba(57,197,207,0.2);
+}
+.code-scroll{overflow:auto;max-height:560px}
+pre{
+  padding:20px 24px;
+  font-size:12.5px;
+  line-height:1.75;
+  tab-size:4;
+  white-space:pre;
+}
+
+/* ── syntax colors ── */
+.kw{color:var(--kw)}
+.fn{color:var(--fn)}
+.str{color:var(--str)}
+.num{color:var(--num)}
+.cm{color:var(--cm);font-style:italic}
+.op{color:var(--op)}
+.cls{color:var(--cls);font-weight:500}
+.dec{color:var(--dec)}
+.sel{color:var(--text)}
+.blt{color:#79c0ff}
+
+/* ── right pane: tester ── */
+.test-pane{display:flex;flex-direction:column}
+.test-body{padding:24px;flex:1;display:flex;flex-direction:column;gap:20px}
+
+.test-label{font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px}
+
+.input-row{display:flex;gap:8px}
+.test-input{
+  flex:1;
+  background:var(--bg4);
+  border:1px solid var(--line2);
+  border-radius:7px;
+  color:var(--text);
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;
+  padding:10px 14px;
+  outline:none;
+  transition:border-color 0.15s;
+}
+.test-input:focus{border-color:var(--cyan)}
+.test-input::placeholder{color:var(--text3)}
+
+.run-btn{
+  padding:10px 18px;
+  background:var(--cyan);
+  border:none;border-radius:7px;
+  color:#0a0c0f;font-family:'JetBrains Mono',monospace;
+  font-size:12px;font-weight:700;
+  cursor:pointer;transition:all 0.15s;
+  white-space:nowrap;
+}
+.run-btn:hover{background:#5ed4dd;transform:scale(1.02)}
+.run-btn:active{transform:scale(0.98)}
+
+.result-box{
+  border-radius:8px;
+  padding:16px 18px;
+  font-size:13px;
+  border:1px solid;
+  min-height:64px;
+  display:flex;align-items:center;gap:12px;
+  transition:all 0.2s;
+}
+.result-box.empty{background:var(--bg4);border-color:var(--line);color:var(--text3)}
+.result-box.accepted{background:var(--green-bg);border-color:rgba(61,214,140,0.25);color:var(--green)}
+.result-box.rejected{background:var(--red-bg);border-color:rgba(244,113,116,0.25);color:var(--red)}
+.result-icon{font-size:20px;flex-shrink:0}
+.result-text{font-size:12px;line-height:1.6}
+.result-string{font-weight:700;font-size:14px}
+
+/* trace */
+.trace-title{font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px}
+.trace-scroll{overflow-y:auto;max-height:200px;display:flex;flex-direction:column;gap:4px}
+.trace-step{
+  font-size:11px;padding:5px 10px;
+  border-radius:5px;background:var(--bg4);border:1px solid var(--line);
+  color:var(--text2);display:flex;align-items:center;gap:8px;
+  animation:fadeIn 0.15s ease both;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+.trace-step.ok{border-color:rgba(61,214,140,0.2);color:var(--green)}
+.trace-step.fail{border-color:rgba(244,113,116,0.2);color:var(--red)}
+.trace-arrow{color:var(--text3)}
+.trace-state{
+  background:var(--bg5);border:1px solid var(--line2);
+  border-radius:3px;padding:1px 7px;font-size:10px;
+  color:var(--cyan);
+}
+.trace-state.acc{color:var(--green);border-color:rgba(61,214,140,0.3);background:rgba(61,214,140,0.07)}
+
+/* examples */
+.examples{display:flex;flex-wrap:wrap;gap:6px}
+.example-chip{
+  font-size:11px;padding:4px 10px;
+  background:var(--bg4);border:1px solid var(--line2);
+  border-radius:5px;cursor:pointer;color:var(--text2);
+  transition:all 0.12s;
+}
+.example-chip:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(57,197,207,0.06)}
+
+/* comparison table */
+.compare-section{margin-top:56px}
+.compare-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:12px;
+}
+.compare-card{
+  background:var(--bg3);border:1px solid var(--line);
+  border-radius:10px;padding:20px;
+}
+.compare-card-title{
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:700;
+  margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-nka-i{background:var(--cyan)}
+.dot-nka-r{background:var(--blue)}
+.dot-dka-i{background:var(--purple)}
+.dot-dka-r{background:var(--amber)}
+.compare-row{
+  font-size:11px;padding:6px 0;
+  border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;gap:8px;
+  color:var(--text2);line-height:1.5;
+}
+.compare-row:last-child{border-bottom:none}
+.compare-row-key{color:var(--text3);flex-shrink:0}
+.compare-row-val{text-align:right;color:var(--text)}
+
+/* diagram */
+.diagram-section{margin-top:56px}
+.diagram-wrap{
+  background:var(--bg3);border:1px solid var(--line);
+  border-radius:10px;padding:28px;overflow-x:auto;
+}
+svg.automaton text{font-family:'JetBrains Mono',monospace}
+
+/* ── exam Q&A ── */
+.exam-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.exam-card{
+  background:var(--bg3);border:1px solid var(--line);
+  border-radius:10px;padding:20px 20px 20px 0;
+  display:flex;gap:0;
+  transition:border-color 0.15s;
+}
+.exam-card:hover{border-color:var(--line2)}
+.exam-num{
+  font-family:'Syne',sans-serif;font-size:11px;font-weight:700;
+  color:var(--text3);letter-spacing:0.08em;
+  min-width:52px;text-align:center;padding-top:2px;
+  flex-shrink:0;
+}
+.exam-body{flex:1}
+.exam-q{
+  font-size:12.5px;color:var(--text);line-height:1.7;
+  margin-bottom:14px;
+}
+.exam-q .math{
+  font-family:'JetBrains Mono',monospace;
+  background:var(--bg5);border:1px solid var(--line2);
+  border-radius:3px;padding:1px 6px;
+  color:var(--cyan);font-size:11px;
+}
+.exam-answer{
+  background:var(--bg4);border:1px solid var(--line);
+  border-radius:8px;padding:12px 14px;
+}
+.exam-ans-label{font-size:9px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px}
+.exam-ans-val{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.ans-chip{
+  font-family:'JetBrains Mono',monospace;
+  background:rgba(61,214,140,0.1);
+  border:1px solid rgba(61,214,140,0.25);
+  border-radius:4px;padding:3px 10px;
+  color:var(--green);font-size:12px;font-weight:500;
+}
+.ans-chip.mono{font-size:11px}
+.exam-explanation{font-size:11px;color:var(--text3);line-height:1.65;border-top:1px solid var(--line);padding-top:8px;margin-top:2px}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="header-title">Konečné Automaty</div>
+    <div class="header-sub">Implementácie v Pythone</div>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-nka">NKA</span>
+    <span class="badge badge-dka">DKA</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Info bar -->
+  <div class="info-bar">
+    <div class="info-item">
+      <div class="info-label">Stavy</div>
+      <div class="info-val">
+        <span class="init">q0</span><span>q1</span><span>q2</span><span>q3</span><span>q4</span><span>q5</span><span>q6</span><span>q7</span><span>q8</span><span>q9</span><span>q10</span>
+      </div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Akceptačné stavy</div>
+      <div class="info-val">
+        <span class="acc">q2</span><span class="acc">q5</span><span class="acc">q8</span><span class="acc">q10</span>
+      </div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Abeceda (NKA)</div>
+      <div class="info-val"><span>0</span><span>1</span><span>ε</span></div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Rozpoznáva</div>
+      <div class="info-val" style="color:var(--text2)">
+        "0" &nbsp;|&nbsp; "1(0|1)*"
+      </div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Príklady</div>
+      <div class="info-val" style="color:var(--text2)">
+        0, 1, 10, 11, 100, 101, 110, 111, …
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ NKA ═══════════════ -->
+  <div class="section-title">NKA — Nedeterministický Konečný Automat</div>
+
+  <div class="tabs" id="nka-tabs">
+    <div class="tab active" onclick="switchTab('nka','iterative')">Iteratívna</div>
+    <div class="tab" onclick="switchTab('nka','recursive')">Rekurzívna</div>
+  </div>
+
+  <!-- NKA Iterative -->
+  <div class="tab-panel active" id="nka-iterative">
+    <div class="code-pane">
+      <div class="pane-header">
+        <span class="pane-title">nka_iterative.py</span>
+        <span class="lang-badge">Python</span>
+      </div>
+      <div class="code-scroll"><pre><span class="kw">from</span> <span class="sel">enum</span> <span class="kw">import</span> <span class="cls">Enum</span>, <span class="fn">auto</span>
+<span class="kw">from</span> <span class="sel">collections</span> <span class="kw">import</span> <span class="cls">deque</span>
+
+<span class="cm"># Definícia stavov automatu</span>
+<span class="kw">class</span> <span class="cls">State</span>(<span class="cls">Enum</span>):
+    q0  = <span class="fn">auto</span>()
+    q1  = <span class="fn">auto</span>()
+    q2  = <span class="fn">auto</span>()
+    q3  = <span class="fn">auto</span>()
+    q4  = <span class="fn">auto</span>()
+    q5  = <span class="fn">auto</span>()
+    q6  = <span class="fn">auto</span>()
+    q7  = <span class="fn">auto</span>()
+    q8  = <span class="fn">auto</span>()
+    q9  = <span class="fn">auto</span>()
+    q10 = <span class="fn">auto</span>()
+
+<span class="kw">class</span> <span class="cls">NKA</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="blt">self</span>, transition_table: <span class="blt">dict</span>,
+                 accepted_states: <span class="blt">set</span>, init_state: <span class="cls">State</span>):
+        <span class="blt">self</span>.transition_table  = transition_table
+        <span class="blt">self</span>.accepted_states    = accepted_states
+        <span class="blt">self</span>.init_state         = init_state
+        <span class="blt">self</span>.queue              = <span class="blt">None</span>
+
+    <span class="kw">def</span> <span class="fn">expand</span>(<span class="blt">self</span>, state: <span class="cls">State</span>, string: <span class="blt">str</span>) -> <span class="blt">None</span>:
+        <span class="cm"># Prechod podľa aktuálneho symbolu</span>
+        <span class="kw">if</span> string != <span class="str">""</span> <span class="kw">and</span> (state, string[<span class="num">0</span>]) <span class="kw">in</span> <span class="blt">self</span>.transition_table:
+            <span class="kw">for</span> s <span class="kw">in</span> <span class="blt">self</span>.transition_table[(state, string[<span class="num">0</span>])]:
+                <span class="blt">self</span>.queue.append((s, string[<span class="num">1</span>:]))
+
+        <span class="cm"># Epsilon-prechody (bez čítania symbolu)</span>
+        <span class="kw">if</span> (state, <span class="str">""</span>) <span class="kw">in</span> <span class="blt">self</span>.transition_table:
+            <span class="kw">for</span> s <span class="kw">in</span> <span class="blt">self</span>.transition_table[(state, <span class="str">""</span>)]:
+                <span class="blt">self</span>.queue.append((s, string))   <span class="cm"># reťazec sa neskracuje!</span>
+
+    <span class="kw">def</span> <span class="fn">check</span>(<span class="blt">self</span>, string: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+        <span class="cm"># BFS — prehľadávanie do šírky</span>
+        <span class="blt">self</span>.queue = <span class="cls">deque</span>()
+        <span class="blt">self</span>.queue.append((<span class="blt">self</span>.init_state, string))
+
+        <span class="kw">while</span> <span class="blt">self</span>.queue:
+            state, rest = <span class="blt">self</span>.queue.<span class="fn">popleft</span>()  <span class="cm"># FIFO!</span>
+
+            <span class="kw">if</span> state <span class="kw">in</span> <span class="blt">self</span>.accepted_states <span class="kw">and</span> rest == <span class="str">""</span>:
+                <span class="kw">return</span> <span class="blt">True</span>
+
+            <span class="blt">self</span>.expand(state, rest)
+
+        <span class="kw">return</span> <span class="blt">False</span>
+
+
+<span class="cm"># Prechodová tabuľka</span>
+transition_table = {
+    (State.q0, <span class="str">''</span>): {State.q1, State.q3},
+    (State.q1, <span class="str">'0'</span>): {State.q2},
+    (State.q3, <span class="str">'1'</span>): {State.q4},
+    (State.q4, <span class="str">''</span>): {State.q5},
+    (State.q5, <span class="str">''</span>): {State.q6},
+    (State.q6, <span class="str">''</span>): {State.q7, State.q9},
+    (State.q7, <span class="str">'0'</span>): {State.q8},
+    (State.q8, <span class="str">''</span>): {State.q6},
+    (State.q9, <span class="str">'1'</span>): {State.q10},
+    (State.q10, <span class="str">''</span>): {State.q6},
+}
+accepted_states = {State.q2, State.q5, State.q8, State.q10}
+
+nka = <span class="cls">NKA</span>(transition_table, accepted_states, State.q0)
+
+s = <span class="fn">input</span>(<span class="str">"Zadaj reťazec> "</span>)
+<span class="kw">while</span> s != <span class="str">"quit"</span>:
+    ok = nka.check(s)
+    <span class="fn">print</span>(<span class="str">f"'</span>{s}<span class="str">' "</span>, <span class="str">"JE"</span> <span class="kw">if</span> ok <span class="kw">else</span> <span class="str">"NIE JE"</span>, <span class="str">"akceptovaný"</span>)
+    s = <span class="fn">input</span>(<span class="str">"Zadaj reťazec> "</span>)</pre></div>
+    </div>
+    <div class="test-pane">
+      <div class="pane-header">
+        <span class="pane-title">Interaktívny tester</span>
+        <span class="lang-badge" style="background:rgba(57,197,207,0.1);color:var(--cyan)">BFS</span>
+      </div>
+      <div class="test-body">
+        <div>
+          <div class="test-label">Vstupný reťazec</div>
+          <div class="input-row">
+            <input class="test-input" id="nka-i-input" placeholder="napr. 10, 111, 0 ..." onkeydown="if(event.key==='Enter')runTest('nka-i')"/>
+            <button class="run-btn" onclick="runTest('nka-i')">▶ Spustiť</button>
+          </div>
+        </div>
+        <div>
+          <div class="test-label">Príklady</div>
+          <div class="examples">
+            <span class="example-chip" onclick="setAndRun('nka-i','0')">0</span>
+            <span class="example-chip" onclick="setAndRun('nka-i','1')">1</span>
+            <span class="example-chip" onclick="setAndRun('nka-i','10')">10</span>
+            <span class="example-chip" onclick="setAndRun('nka-i','11')">11</span>
+            <span class="example-chip" onclick="setAndRun('nka-i','100')">100</span>
+            <span class="example-chip" onclick="setAndRun('nka-i','101')">101</span>
+            <span class="example-chip" onclick="setAndRun('nka-i','00')">00 ✗</span>
+            <span class="example-chip" onclick="setAndRun('nka-i','')">ε ✗</span>
+          </div>
+        </div>
+        <div id="nka-i-result" class="result-box empty">
+          <span class="result-icon">○</span>
+          <span class="result-text">Zadaj reťazec a stlač Spustiť</span>
+        </div>
+        <div>
+          <div class="trace-title">Priebeh (BFS kroky)</div>
+          <div class="trace-scroll" id="nka-i-trace"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NKA Recursive -->
+  <div class="tab-panel" id="nka-recursive">
+    <div class="code-pane">
+      <div class="pane-header">
+        <span class="pane-title">nka_recursive.py</span>
+        <span class="lang-badge">Python</span>
+      </div>
+      <div class="code-scroll"><pre><span class="kw">from</span> <span class="sel">enum</span> <span class="kw">import</span> <span class="cls">Enum</span>, <span class="fn">auto</span>
+
+<span class="kw">class</span> <span class="cls">State</span>(<span class="cls">Enum</span>):
+    q0=<span class="fn">auto</span>(); q1=<span class="fn">auto</span>(); q2=<span class="fn">auto</span>(); q3=<span class="fn">auto</span>()
+    q4=<span class="fn">auto</span>(); q5=<span class="fn">auto</span>(); q6=<span class="fn">auto</span>(); q7=<span class="fn">auto</span>()
+    q8=<span class="fn">auto</span>(); q9=<span class="fn">auto</span>(); q10=<span class="fn">auto</span>()
+
+<span class="cm"># Každý stav = funkcia</span>
+<span class="cm"># Prechod = volanie inej funkcie</span>
+<span class="cm"># Epsilon = volanie bez skrátenia reťazca</span>
+
+<span class="kw">def</span> <span class="fn">q0</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># epsilon-prechody do q1 a q3 → or = nedeterminizmus</span>
+    <span class="kw">return</span> <span class="fn">q3</span>(s) <span class="kw">or</span> <span class="fn">q1</span>(s)
+
+<span class="kw">def</span> <span class="fn">q1</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># čakáme symbol '0'</span>
+    <span class="kw">if</span> <span class="blt">len</span>(s) > <span class="num">0</span> <span class="kw">and</span> s[<span class="num">0</span>] == <span class="str">'0'</span>:
+        <span class="kw">return</span> <span class="fn">q2</span>(s[<span class="num">1</span>:])  <span class="cm"># skrátime reťazec</span>
+    <span class="kw">return</span> <span class="blt">False</span>
+
+<span class="kw">def</span> <span class="fn">q2</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># akceptačný stav — reťazec musí byť prázdny</span>
+    <span class="kw">return</span> <span class="blt">len</span>(s) == <span class="num">0</span>
+
+<span class="kw">def</span> <span class="fn">q3</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># čakáme symbol '1'</span>
+    <span class="kw">if</span> <span class="blt">len</span>(s) > <span class="num">0</span> <span class="kw">and</span> s[<span class="num">0</span>] == <span class="str">'1'</span>:
+        <span class="kw">return</span> <span class="fn">q4</span>(s[<span class="num">1</span>:])
+    <span class="kw">return</span> <span class="blt">False</span>
+
+<span class="kw">def</span> <span class="fn">q4</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># akceptačný + epsilon do q5</span>
+    <span class="kw">if</span> <span class="blt">len</span>(s) == <span class="num">0</span>:
+        <span class="kw">return</span> <span class="blt">True</span>
+    <span class="kw">return</span> <span class="fn">q5</span>(s)    <span class="cm"># epsilon — s sa neskracuje</span>
+
+<span class="kw">def</span> <span class="fn">q5</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># akceptačný + epsilon do q6</span>
+    <span class="kw">if</span> <span class="blt">len</span>(s) == <span class="num">0</span>:
+        <span class="kw">return</span> <span class="blt">True</span>
+    <span class="kw">return</span> <span class="fn">q6</span>(s)    <span class="cm"># epsilon</span>
+
+<span class="kw">def</span> <span class="fn">q6</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># rozvetvenie: q9 (pre '1') alebo q7 (pre '0')</span>
+    <span class="kw">return</span> <span class="fn">q9</span>(s) <span class="kw">or</span> <span class="fn">q7</span>(s)
+
+<span class="kw">def</span> <span class="fn">q7</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># čakáme '0'</span>
+    <span class="kw">if</span> <span class="blt">len</span>(s) > <span class="num">0</span> <span class="kw">and</span> s[<span class="num">0</span>] == <span class="str">'0'</span>:
+        <span class="kw">return</span> <span class="fn">q8</span>(s[<span class="num">1</span>:])
+    <span class="kw">return</span> <span class="blt">False</span>
+
+<span class="kw">def</span> <span class="fn">q8</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># akceptačný + epsilon späť do q6 = cyklus!</span>
+    <span class="kw">if</span> <span class="blt">len</span>(s) == <span class="num">0</span>:
+        <span class="kw">return</span> <span class="blt">True</span>
+    <span class="kw">return</span> <span class="fn">q6</span>(s)    <span class="cm"># rekurzívny skok</span>
+
+<span class="kw">def</span> <span class="fn">q9</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># čakáme '1'</span>
+    <span class="kw">if</span> <span class="blt">len</span>(s) > <span class="num">0</span> <span class="kw">and</span> s[<span class="num">0</span>] == <span class="str">'1'</span>:
+        <span class="kw">return</span> <span class="fn">q10</span>(s[<span class="num">1</span>:])
+    <span class="kw">return</span> <span class="blt">False</span>
+
+<span class="kw">def</span> <span class="fn">q10</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># akceptačný + epsilon späť do q6 = cyklus!</span>
+    <span class="kw">if</span> <span class="blt">len</span>(s) == <span class="num">0</span>:
+        <span class="kw">return</span> <span class="blt">True</span>
+    <span class="kw">return</span> <span class="fn">q6</span>(s)
+
+<span class="cm"># Spustenie — q0 je vstupný bod</span>
+s = <span class="fn">input</span>(<span class="str">"Zadaj reťazec> "</span>)
+<span class="kw">while</span> s != <span class="str">"quit"</span>:
+    <span class="fn">print</span>(<span class="str">"JE"</span> <span class="kw">if</span> <span class="fn">q0</span>(s) <span class="kw">else</span> <span class="str">"NIE JE"</span>, <span class="str">"akceptovaný"</span>)
+    s = <span class="fn">input</span>(<span class="str">"Zadaj reťazec> "</span>)</pre></div>
+    </div>
+    <div class="test-pane">
+      <div class="pane-header">
+        <span class="pane-title">Interaktívny tester</span>
+        <span class="lang-badge" style="background:rgba(88,166,255,0.1);color:var(--blue)">DFS rekurzia</span>
+      </div>
+      <div class="test-body">
+        <div>
+          <div class="test-label">Vstupný reťazec</div>
+          <div class="input-row">
+            <input class="test-input" id="nka-r-input" placeholder="napr. 10, 111, 0 ..." onkeydown="if(event.key==='Enter')runTest('nka-r')"/>
+            <button class="run-btn" onclick="runTest('nka-r')" style="background:var(--blue);color:#0a0c0f">▶ Spustiť</button>
+          </div>
+        </div>
+        <div>
+          <div class="test-label">Príklady</div>
+          <div class="examples">
+            <span class="example-chip" onclick="setAndRun('nka-r','0')">0</span>
+            <span class="example-chip" onclick="setAndRun('nka-r','1')">1</span>
+            <span class="example-chip" onclick="setAndRun('nka-r','10')">10</span>
+            <span class="example-chip" onclick="setAndRun('nka-r','11')">11</span>
+            <span class="example-chip" onclick="setAndRun('nka-r','100')">100</span>
+            <span class="example-chip" onclick="setAndRun('nka-r','101')">101</span>
+            <span class="example-chip" onclick="setAndRun('nka-r','00')">00 ✗</span>
+            <span class="example-chip" onclick="setAndRun('nka-r','')">ε ✗</span>
+          </div>
+        </div>
+        <div id="nka-r-result" class="result-box empty">
+          <span class="result-icon">○</span>
+          <span class="result-text">Zadaj reťazec a stlač Spustiť</span>
+        </div>
+        <div>
+          <div class="trace-title">Priebeh (rekurzívne volania)</div>
+          <div class="trace-scroll" id="nka-r-trace"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ DKA ═══════════════ -->
+  <div class="section-title" style="margin-top:52px">DKA — Deterministický Konečný Automat</div>
+
+  <div class="tabs" id="dka-tabs">
+    <div class="tab active" onclick="switchTab('dka','iterative')">Iteratívna</div>
+    <div class="tab" onclick="switchTab('dka','recursive')">Rekurzívna</div>
+  </div>
+
+  <!-- DKA Iterative -->
+  <div class="tab-panel active" id="dka-iterative">
+    <div class="code-pane">
+      <div class="pane-header">
+        <span class="pane-title">dka_iterative.py</span>
+        <span class="lang-badge">Python</span>
+      </div>
+      <div class="code-scroll"><pre><span class="kw">from</span> <span class="sel">enum</span> <span class="kw">import</span> <span class="cls">Enum</span>, <span class="fn">auto</span>
+
+<span class="cm"># DKA: rozpoznáva reťazce začínajúce 'a' a končiace 'b'</span>
+<span class="cm"># napr: ab, aab, axb, aaab — ÁNO</span>
+<span class="cm">#       ba, a, b, ""       — NIE</span>
+
+<span class="kw">class</span> <span class="cls">State</span>(<span class="cls">Enum</span>):
+    q0 = <span class="fn">auto</span>()  <span class="cm"># počiatočný</span>
+    q1 = <span class="fn">auto</span>()  <span class="cm"># prečítali sme 'a', čakáme ďalej</span>
+    q2 = <span class="fn">auto</span>()  <span class="cm"># akceptačný — posledný symbol bol 'b'</span>
+    q3 = <span class="fn">auto</span>()  <span class="cm"># mŕtvy stav — prvý symbol nebol 'a'</span>
+
+<span class="kw">class</span> <span class="cls">DKA</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="blt">self</span>, transition_table: <span class="blt">dict</span>,
+                 accepted_states: <span class="blt">set</span>, init_state: <span class="cls">State</span>):
+        <span class="blt">self</span>.transition_table = transition_table
+        <span class="blt">self</span>.accepted_states  = accepted_states
+        <span class="blt">self</span>.init_state       = init_state
+
+    <span class="kw">def</span> <span class="fn">check</span>(<span class="blt">self</span>, string: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+        <span class="cm"># začíname v počiatočnom stave</span>
+        state = <span class="blt">self</span>.init_state
+
+        <span class="cm"># čítame symbol po symbole — deterministicky</span>
+        <span class="kw">for</span> symbol <span class="kw">in</span> string:
+            key = (state, symbol)
+            <span class="kw">if</span> key <span class="kw">in</span> <span class="blt">self</span>.transition_table:
+                state = <span class="blt">self</span>.transition_table[key]
+            <span class="kw">else</span>:
+                <span class="kw">return</span> <span class="blt">False</span>  <span class="cm"># neexistujúci prechod = odmietnutie</span>
+
+        <span class="cm"># akceptujeme ak sme v akceptačnom stave</span>
+        <span class="kw">return</span> state <span class="kw">in</span> <span class="blt">self</span>.accepted_states
+
+
+<span class="cm"># Prechodová tabuľka — každý (stav, symbol) → práve 1 stav</span>
+transition_table = {
+    (State.q0, <span class="str">'a'</span>): State.q1,   <span class="cm"># prečítali sme 'a'</span>
+    (State.q1, <span class="str">'b'</span>): State.q2,   <span class="cm"># prečítali sme 'b' → akceptačný</span>
+    (State.q1, <span class="str">'a'</span>): State.q1,   <span class="cm"># ďalšie 'a' → zostávame</span>
+    (State.q2, <span class="str">'b'</span>): State.q2,   <span class="cm"># ďalšie 'b' → zostávame</span>
+    (State.q2, <span class="str">'a'</span>): State.q1,   <span class="cm"># 'a' po 'b' → späť na q1</span>
+    <span class="cm"># ostatné symboly → return False (mŕtvy stav implicitný)</span>
+}
+accepted_states = {State.q2}
+
+dka = <span class="cls">DKA</span>(transition_table, accepted_states, State.q0)
+
+s = <span class="fn">input</span>(<span class="str">"Zadaj reťazec> "</span>)
+<span class="kw">while</span> s != <span class="str">"quit"</span>:
+    ok = dka.check(s)
+    <span class="fn">print</span>(<span class="str">"JE"</span> <span class="kw">if</span> ok <span class="kw">else</span> <span class="str">"NIE JE"</span>, <span class="str">"akceptovaný"</span>)
+    s = <span class="fn">input</span>(<span class="str">"Zadaj reťazec> "</span>)</pre></div>
+    </div>
+    <div class="test-pane">
+      <div class="pane-header">
+        <span class="pane-title">Interaktívny tester</span>
+        <span class="lang-badge" style="background:rgba(163,113,247,0.1);color:var(--purple)">For loop</span>
+      </div>
+      <div class="test-body">
+        <div>
+          <div class="test-label">Vstupný reťazec (začína 'a', končí 'b')</div>
+          <div class="input-row">
+            <input class="test-input" id="dka-i-input" placeholder="napr. ab, aab, axb ..." onkeydown="if(event.key==='Enter')runTest('dka-i')"/>
+            <button class="run-btn" onclick="runTest('dka-i')" style="background:var(--purple);color:#fff">▶ Spustiť</button>
+          </div>
+        </div>
+        <div>
+          <div class="test-label">Príklady</div>
+          <div class="examples">
+            <span class="example-chip" onclick="setAndRun('dka-i','ab')">ab</span>
+            <span class="example-chip" onclick="setAndRun('dka-i','aab')">aab</span>
+            <span class="example-chip" onclick="setAndRun('dka-i','axb')">axb</span>
+            <span class="example-chip" onclick="setAndRun('dka-i','abb')">abb</span>
+            <span class="example-chip" onclick="setAndRun('dka-i','aabb')">aabb</span>
+            <span class="example-chip" onclick="setAndRun('dka-i','ba')">ba ✗</span>
+            <span class="example-chip" onclick="setAndRun('dka-i','a')">a ✗</span>
+            <span class="example-chip" onclick="setAndRun('dka-i','')">ε ✗</span>
+          </div>
+        </div>
+        <div id="dka-i-result" class="result-box empty">
+          <span class="result-icon">○</span>
+          <span class="result-text">Zadaj reťazec a stlač Spustiť</span>
+        </div>
+        <div>
+          <div class="trace-title">Priebeh (krok po kroku)</div>
+          <div class="trace-scroll" id="dka-i-trace"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DKA Recursive -->
+  <div class="tab-panel" id="dka-recursive">
+    <div class="code-pane">
+      <div class="pane-header">
+        <span class="pane-title">dka_recursive.py</span>
+        <span class="lang-badge">Python</span>
+      </div>
+      <div class="code-scroll"><pre><span class="kw">from</span> <span class="sel">enum</span> <span class="kw">import</span> <span class="cls">Enum</span>, <span class="fn">auto</span>
+
+<span class="cm"># DKA rekurzívne — každý stav = funkcia</span>
+<span class="cm"># Hĺbka rekurzie = dĺžka reťazca (bezpečné!)</span>
+
+<span class="kw">class</span> <span class="cls">State</span>(<span class="cls">Enum</span>):
+    q0 = <span class="fn">auto</span>()
+    q1 = <span class="fn">auto</span>()
+    q2 = <span class="fn">auto</span>()
+    q3 = <span class="fn">auto</span>()
+
+<span class="kw">def</span> <span class="fn">q0</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># počiatočný stav — prvý symbol musí byť 'a'</span>
+    <span class="kw">if</span> <span class="blt">len</span>(s) == <span class="num">0</span>:
+        <span class="kw">return</span> <span class="blt">False</span>          <span class="cm"># prázdny reťazec — nie</span>
+    <span class="kw">if</span> s[<span class="num">0</span>] == <span class="str">'a'</span>:
+        <span class="kw">return</span> <span class="fn">q1</span>(s[<span class="num">1</span>:])     <span class="cm"># 'a' prečítané → q1</span>
+    <span class="kw">return</span> <span class="fn">q3</span>(s[<span class="num">1</span>:])         <span class="cm"># iný symbol → mŕtvy stav</span>
+
+<span class="kw">def</span> <span class="fn">q1</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># prečítali sme 'a', čakáme ďalej</span>
+    <span class="kw">if</span> <span class="blt">len</span>(s) == <span class="num">0</span>:
+        <span class="kw">return</span> <span class="blt">False</span>          <span class="cm"># skončili v q1 — nie je akceptačný</span>
+    <span class="kw">if</span> s[<span class="num">0</span>] == <span class="str">'b'</span>:
+        <span class="kw">return</span> <span class="fn">q2</span>(s[<span class="num">1</span>:])     <span class="cm"># 'b' → akceptačný stav</span>
+    <span class="kw">return</span> <span class="fn">q1</span>(s[<span class="num">1</span>:])         <span class="cm"># čokoľvek iné → zostávame v q1</span>
+
+<span class="kw">def</span> <span class="fn">q2</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># akceptačný stav — posledný prečítaný symbol bol 'b'</span>
+    <span class="kw">if</span> <span class="blt">len</span>(s) == <span class="num">0</span>:
+        <span class="kw">return</span> <span class="blt">True</span>           <span class="cm"># reťazec prečítaný → AKCEPTOVANÝ!</span>
+    <span class="kw">if</span> s[<span class="num">0</span>] == <span class="str">'b'</span>:
+        <span class="kw">return</span> <span class="fn">q2</span>(s[<span class="num">1</span>:])     <span class="cm"># ďalšie 'b' → zostávame</span>
+    <span class="kw">return</span> <span class="fn">q1</span>(s[<span class="num">1</span>:])         <span class="cm"># 'a' alebo iné → späť na q1</span>
+
+<span class="kw">def</span> <span class="fn">q3</span>(s: <span class="blt">str</span>) -> <span class="blt">bool</span>:
+    <span class="cm"># mŕtvy stav — odtiaľto niet úniku</span>
+    <span class="kw">return</span> <span class="blt">False</span>
+
+<span class="cm"># Príklady priebehu:</span>
+<span class="cm"># q0("aab") → q1("ab") → q1("b") → q2("") → True</span>
+<span class="cm"># q0("ba")  → q3("a")             → False</span>
+<span class="cm"># q0("ab")  → q1("b") → q2("")    → True</span>
+
+s = <span class="fn">input</span>(<span class="str">"Zadaj reťazec> "</span>)
+<span class="kw">while</span> s != <span class="str">"quit"</span>:
+    <span class="fn">print</span>(<span class="str">"JE"</span> <span class="kw">if</span> <span class="fn">q0</span>(s) <span class="kw">else</span> <span class="str">"NIE JE"</span>, <span class="str">"akceptovaný"</span>)
+    s = <span class="fn">input</span>(<span class="str">"Zadaj reťazec> "</span>)</pre></div>
+    </div>
+    <div class="test-pane">
+      <div class="pane-header">
+        <span class="pane-title">Interaktívny tester</span>
+        <span class="lang-badge" style="background:rgba(227,179,65,0.1);color:var(--amber)">Rekurzia</span>
+      </div>
+      <div class="test-body">
+        <div>
+          <div class="test-label">Vstupný reťazec (začína 'a', končí 'b')</div>
+          <div class="input-row">
+            <input class="test-input" id="dka-r-input" placeholder="napr. ab, aab, axb ..." onkeydown="if(event.key==='Enter')runTest('dka-r')"/>
+            <button class="run-btn" onclick="runTest('dka-r')" style="background:var(--amber);color:#0a0c0f">▶ Spustiť</button>
+          </div>
+        </div>
+        <div>
+          <div class="test-label">Príklady</div>
+          <div class="examples">
+            <span class="example-chip" onclick="setAndRun('dka-r','ab')">ab</span>
+            <span class="example-chip" onclick="setAndRun('dka-r','aab')">aab</span>
+            <span class="example-chip" onclick="setAndRun('dka-r','axb')">axb</span>
+            <span class="example-chip" onclick="setAndRun('dka-r','abb')">abb</span>
+            <span class="example-chip" onclick="setAndRun('dka-r','aabb')">aabb</span>
+            <span class="example-chip" onclick="setAndRun('dka-r','ba')">ba ✗</span>
+            <span class="example-chip" onclick="setAndRun('dka-r','a')">a ✗</span>
+            <span class="example-chip" onclick="setAndRun('dka-r','')">ε ✗</span>
+          </div>
+        </div>
+        <div id="dka-r-result" class="result-box empty">
+          <span class="result-icon">○</span>
+          <span class="result-text">Zadaj reťazec a stlač Spustiť</span>
+        </div>
+        <div>
+          <div class="trace-title">Priebeh (rekurzívne volania)</div>
+          <div class="trace-scroll" id="dka-r-trace"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Exam Q&A ═══ -->
+  <div class="exam-section" style="margin-top:56px">
+    <div class="section-title">Skúškové otázky a odpovede</div>
+
+    <div class="exam-grid">
+
+      <!-- Q1 -->
+      <div class="exam-card">
+        <div class="exam-num">01</div>
+        <div class="exam-body">
+          <div class="exam-q">Vymenujte všetky prvky jazyka <span class="math">X* − X*</span> pre ľubovoľnú abecedu X. Pre prázdne slovo použite zápis <em>eps</em>. Ak je jazyk prázdny, zadajte <span class="math">{}</span>.</div>
+          <div class="exam-answer">
+            <div class="exam-ans-label">Odpoveď</div>
+            <div class="exam-ans-val"><span class="ans-chip">{}</span></div>
+            <div class="exam-explanation">X* mínus X* je prázdna množina — od jazyka odpočítame samého seba.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="exam-card">
+        <div class="exam-num">02</div>
+        <div class="exam-body">
+          <div class="exam-q">Numericky určte mohutnosť jazyka <span class="math">X* − X⁺</span> pre ľubovoľnú abecedu X.</div>
+          <div class="exam-answer">
+            <div class="exam-ans-label">Odpoveď</div>
+            <div class="exam-ans-val"><span class="ans-chip">1</span></div>
+            <div class="exam-explanation">X* obsahuje ε aj neprázdne slová. X⁺ obsahuje len neprázdne slová. Rozdiel = {ε} → mohutnosť 1.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="exam-card">
+        <div class="exam-num">03</div>
+        <div class="exam-body">
+          <div class="exam-q">Numericky určte mohutnosť jazyka <span class="math">X⁺ − X*</span> pre ľubovoľnú abecedu X.</div>
+          <div class="exam-answer">
+            <div class="exam-ans-label">Odpoveď</div>
+            <div class="exam-ans-val"><span class="ans-chip">0</span></div>
+            <div class="exam-explanation">X⁺ ⊆ X*, teda X⁺ − X* = ∅ → mohutnosť 0.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="exam-card">
+        <div class="exam-num">04</div>
+        <div class="exam-body">
+          <div class="exam-q">Nech <span class="math">L₁ = {ε, a}</span> a <span class="math">L₂ = {ε, a, b}</span>. Numericky určte mohutnosť jazyka ktorý vznikol zreťazením jazykov L₁ a L₂.</div>
+          <div class="exam-answer">
+            <div class="exam-ans-label">Odpoveď</div>
+            <div class="exam-ans-val"><span class="ans-chip">5</span></div>
+            <div class="exam-explanation">L₁·L₂ = {ε, a, b, aa, ab} — zreťazíme každý prvok L₁ s každým prvkom L₂ a odstrânime duplicity. |L₁·L₂| = 5.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="exam-card">
+        <div class="exam-num">05</div>
+        <div class="exam-body">
+          <div class="exam-q">Nech <span class="math">L₁ = {ε, aaa, ab, ba, bba}</span> a <span class="math">L₂ = {ε}</span>. Vymenujte všetky prvky jazyka ktorý vznikne ako <strong>ľavý kvocient</strong> jazyka L₁ podľa jazyka L₂. Pre prázdne slovo použite zápis <em>eps</em>.</div>
+          <div class="exam-answer">
+            <div class="exam-ans-label">Odpoveď</div>
+            <div class="exam-ans-val">
+              <span class="ans-chip">eps</span>
+              <span class="ans-chip">aaa</span>
+              <span class="ans-chip">ab</span>
+              <span class="ans-chip">ba</span>
+              <span class="ans-chip">bba</span>
+            </div>
+            <div class="exam-explanation">Ľavý kvocient L₁/L₂ = { w | ∃u∈L₂: uw∈L₁ }. Keďže L₂ = {ε}, každé slovo z L₁ zostáva nezmenené — odstraňujeme prázdny prefix.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="exam-card">
+        <div class="exam-num">06</div>
+        <div class="exam-body">
+          <div class="exam-q">Je daný regulárny výraz <span class="math">({a}a | [b]).b</span>. Konštruujte DKA pomocou metódy tokenov. Zapíšte konfiguráciu <strong>počiatočného stavu</strong> tohto automatu v tvare regulárneho výrazu bez medzier s tokenmi (bodky reprezentujú polohu čítacej hlavy). Napr. <span class="math">({a}{b})b.</span></div>
+          <div class="exam-answer">
+            <div class="exam-ans-label">Odpoveď</div>
+            <div class="exam-ans-val"><span class="ans-chip mono">({.a}.a|[.b]).b</span></div>
+            <div class="exam-explanation">Bodky sa umiestnia na začiatok každého tokenu — čítacia hlava stojí pred každým možným prvým symbolom. Počiatočný stav = všetky tokeny s bodkou na začiatku.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q7 -->
+      <div class="exam-card">
+        <div class="exam-num">07</div>
+        <div class="exam-body">
+          <div class="exam-q">Zapíšte konfigurácie <strong>koncových stavov</strong> automatu z otázky 06 v tvare postupnosti konfigurácií oddelených čiarkami. Na poradí nezáleží.</div>
+          <div class="exam-answer">
+            <div class="exam-ans-label">Odpoveď</div>
+            <div class="exam-ans-val"><span class="ans-chip mono">({a}a|[b]).b.,({a}a|[b])b.</span></div>
+            <div class="exam-explanation">Koncový stav = konfigurácia kde bodka stojí na konci celého výrazu (za posledným tokenom b). Existujú dve rôzne cesty ako dôjsť k poslednému b.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q8 -->
+      <div class="exam-card">
+        <div class="exam-num">08</div>
+        <div class="exam-body">
+          <div class="exam-q">Numericky určite <strong>počet stavov</strong> výsledného deterministického konečnostavového automatu z otázky 06.</div>
+          <div class="exam-answer">
+            <div class="exam-ans-label">Odpoveď</div>
+            <div class="exam-ans-val"><span class="ans-chip">4</span></div>
+            <div class="exam-explanation">DKA pre ({a}a|[b]).b má 4 stavy: počiatočný stav, stav po prečítaní prvého symbolu (a alebo b), akceptačný stav (po b), a mŕtvy stav.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q9 -->
+      <div class="exam-card">
+        <div class="exam-num">09</div>
+        <div class="exam-body">
+          <div class="exam-q">Určte konfiguráciu stavu v ktorom skončí výpočet výsledného DKA z otázky 06 nad slovom <span class="math">aaa</span>.</div>
+          <div class="exam-answer">
+            <div class="exam-ans-label">Odpoveď</div>
+            <div class="exam-ans-val"><span class="ans-chip mono">({.a}.a|[.b]).b</span></div>
+            <div class="exam-explanation">Slovo "aaa": prečítame prvé 'a' → prejdeme do stavu po 'a'. Druhé 'a' → automat čaká na 'b', ale dostane 'a' → vracia sa do počiatočného stavu. Tretie 'a' → znova počiatočný stav ({.a}.a|[.b]).b.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q10 -->
+      <div class="exam-card">
+        <div class="exam-num">10</div>
+        <div class="exam-body">
+          <div class="exam-q">Je daný regulárny výraz <span class="math">{(a|b)b}a</span>. Konštruujte NKA pomocou metódy prezentovanej na cvičeniach. Z <strong>koľkých stavov</strong> bude výsledný automat pozostávať?</div>
+          <div class="exam-answer">
+            <div class="exam-ans-label">Odpoveď</div>
+            <div class="exam-ans-val"><span class="ans-chip">10</span></div>
+            <div class="exam-explanation">Metóda konštrukcie NKA z regulárneho výrazu (Thompson): každý základný token pridá 2 stavy, každá operácia (zreťazenie, alternatíva, iterácia) pridá ε-prechody. Pre {(a|b)b}a vychádza 10 stavov.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q11 -->
+      <div class="exam-card">
+        <div class="exam-num">11</div>
+        <div class="exam-body">
+          <div class="exam-q">Koľko <strong>ε-prechodov</strong> bude výsledný NKA z otázky 10 obsahovať?</div>
+          <div class="exam-answer">
+            <div class="exam-ans-label">Odpoveď</div>
+            <div class="exam-ans-val"><span class="ans-chip">6</span></div>
+            <div class="exam-explanation">Thompson konštrukcia: iterácia {} pridá 4 ε-prechody, alternatíva | pridá 2 ε-prechody → spolu 6 ε-prechodov.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q12 -->
+      <div class="exam-card">
+        <div class="exam-num">12</div>
+        <div class="exam-body">
+          <div class="exam-q">Numericky určte <strong>počet slučiek</strong> (self-loop) ktoré obsahuje diagram výsledného DKA z otázky 06.</div>
+          <div class="exam-answer">
+            <div class="exam-ans-label">Odpoveď</div>
+            <div class="exam-ans-val"><span class="ans-chip">2</span></div>
+            <div class="exam-explanation">DKA pre ({a}a|[b]).b má slučky v stave q1 (prechod a→q1 keď čakáme na b) a v akceptačnom stave q2 (prechod b→q2). Spolu 2 slučky.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ Comparison ═══ -->
+  <div class="compare-section">
+    <div class="section-title">Porovnanie implementácií</div>
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="compare-card-title"><span class="dot dot-nka-i"></span>NKA — Iteratívna</div>
+        <div class="compare-row"><span class="compare-row-key">Štruktúra</span><span class="compare-row-val">Trieda + deque</span></div>
+        <div class="compare-row"><span class="compare-row-key">Algoritmus</span><span class="compare-row-val">BFS</span></div>
+        <div class="compare-row"><span class="compare-row-key">Poradie</span><span class="compare-row-val">FIFO popleft()</span></div>
+        <div class="compare-row"><span class="compare-row-key">Epsilon</span><span class="compare-row-val">✓ explicitné</span></div>
+        <div class="compare-row"><span class="compare-row-key">Nekonečná slučka</span><span class="compare-row-val">Možná</span></div>
+        <div class="compare-row"><span class="compare-row-key">Stack overflow</span><span class="compare-row-val">✗ nie</span></div>
+      </div>
+      <div class="compare-card">
+        <div class="compare-card-title"><span class="dot dot-nka-r"></span>NKA — Rekurzívna</div>
+        <div class="compare-row"><span class="compare-row-key">Štruktúra</span><span class="compare-row-val">Funkcie</span></div>
+        <div class="compare-row"><span class="compare-row-key">Algoritmus</span><span class="compare-row-val">DFS</span></div>
+        <div class="compare-row"><span class="compare-row-key">Poradie</span><span class="compare-row-val">Call stack</span></div>
+        <div class="compare-row"><span class="compare-row-key">Epsilon</span><span class="compare-row-val">✓ bez skrátenia</span></div>
+        <div class="compare-row"><span class="compare-row-key">Nekonečná slučka</span><span class="compare-row-val">⚠ nebezpečná</span></div>
+        <div class="compare-row"><span class="compare-row-key">Stack overflow</span><span class="compare-row-val">⚠ možný</span></div>
+      </div>
+      <div class="compare-card">
+        <div class="compare-card-title"><span class="dot dot-dka-i"></span>DKA — Iteratívna</div>
+        <div class="compare-row"><span class="compare-row-key">Štruktúra</span><span class="compare-row-val">Trieda + for</span></div>
+        <div class="compare-row"><span class="compare-row-key">Algoritmus</span><span class="compare-row-val">Lineárny</span></div>
+        <div class="compare-row"><span class="compare-row-key">Poradie</span><span class="compare-row-val">Ľavá → pravá</span></div>
+        <div class="compare-row"><span class="compare-row-key">Epsilon</span><span class="compare-row-val">✗ niet</span></div>
+        <div class="compare-row"><span class="compare-row-key">Nekonečná slučka</span><span class="compare-row-val">✗ nie</span></div>
+        <div class="compare-row"><span class="compare-row-key">Stack overflow</span><span class="compare-row-val">✗ nie</span></div>
+      </div>
+      <div class="compare-card">
+        <div class="compare-card-title"><span class="dot dot-dka-r"></span>DKA — Rekurzívna</div>
+        <div class="compare-row"><span class="compare-row-key">Štruktúra</span><span class="compare-row-val">Funkcie</span></div>
+        <div class="compare-row"><span class="compare-row-key">Algoritmus</span><span class="compare-row-val">Lineárny</span></div>
+        <div class="compare-row"><span class="compare-row-key">Poradie</span><span class="compare-row-val">Call stack</span></div>
+        <div class="compare-row"><span class="compare-row-key">Epsilon</span><span class="compare-row-val">✗ niet</span></div>
+        <div class="compare-row"><span class="compare-row-key">Nekonečná slučka</span><span class="compare-row-val">✗ nie</span></div>
+        <div class="compare-row"><span class="compare-row-key">Stack overflow</span><span class="compare-row-val">✓ bezpečná</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════
+//  NKA logic (JS port)
+// ══════════════════════════════
+
+const NKA_TT = {
+  'q0,':  ['q1','q3'],
+  'q1,0': ['q2'],
+  'q3,1': ['q4'],
+  'q4,':  ['q5'],
+  'q5,':  ['q6'],
+  'q6,':  ['q7','q9'],
+  'q7,0': ['q8'],
+  'q8,':  ['q6'],
+  'q9,1': ['q10'],
+  'q10,': ['q6'],
+};
+const NKA_ACC = new Set(['q2','q5','q8','q10']);
+
+function nkaIterative(string) {
+  const queue = [['q0', string]];
+  const steps = [];
+  const visited = new Set();
+  while (queue.length) {
+    const [state, rest] = queue.shift();
+    const key = state + '|' + rest;
+    if (visited.has(key)) continue;
+    visited.add(key);
+    steps.push({ state, rest, accepted: NKA_ACC.has(state) && rest === '' });
+    if (NKA_ACC.has(state) && rest === '') return { result: true, steps };
+    // symbol transition
+    if (rest !== '') {
+      const k = state + ',' + rest[0];
+      if (NKA_TT[k]) NKA_TT[k].forEach(s => queue.push([s, rest.slice(1)]));
+    }
+    // epsilon
+    const ek = state + ',';
+    if (NKA_TT[ek]) NKA_TT[ek].forEach(s => queue.push([s, rest]));
+  }
+  return { result: false, steps };
+}
+
+function nkaRecursive(string) {
+  const steps = [];
+  const seen = new Set();
+  function go(state, s) {
+    const key = state + '|' + s;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    const acc = NKA_ACC.has(state) && s === '';
+    steps.push({ state, rest: s, accepted: acc });
+    if (acc) return true;
+    // symbol
+    if (s !== '') {
+      const k = state + ',' + s[0];
+      if (NKA_TT[k]) for (const ns of NKA_TT[k]) { if (go(ns, s.slice(1))) return true; }
+    }
+    // epsilon
+    const ek = state + ',';
+    if (NKA_TT[ek]) for (const ns of NKA_TT[ek]) { if (go(ns, s)) return true; }
+    return false;
+  }
+  const result = go('q0', string);
+  return { result, steps };
+}
+
+// ══════════════════════════════
+//  DKA logic (JS port)
+// ══════════════════════════════
+
+const DKA_TT = {
+  'q0,a': 'q1',
+  'q1,b': 'q2',
+  'q1,a': 'q1',
+  'q2,b': 'q2',
+  'q2,a': 'q1',
+};
+const DKA_ACC = new Set(['q2']);
+
+function dkaIterative(string) {
+  let state = 'q0';
+  const steps = [{ state, rest: string, accepted: false }];
+  for (let i = 0; i < string.length; i++) {
+    const sym = string[i];
+    const k = state + ',' + sym;
+    if (!DKA_TT[k]) {
+      steps.push({ state: 'dead', rest: string.slice(i+1), accepted: false });
+      return { result: false, steps };
+    }
+    state = DKA_TT[k];
+    steps.push({ state, rest: string.slice(i+1), accepted: DKA_ACC.has(state) && i === string.length-1 });
+  }
+  return { result: DKA_ACC.has(state), steps };
+}
+
+function dkaRecursive(string) {
+  const steps = [];
+  function go(state, s) {
+    const acc = DKA_ACC.has(state) && s === '';
+    steps.push({ state, rest: s, accepted: acc });
+    if (s === '') return DKA_ACC.has(state);
+    const k = state + ',' + s[0];
+    if (!DKA_TT[k]) return false;
+    return go(DKA_TT[k], s.slice(1));
+  }
+  const result = go('q0', string);
+  return { result, steps };
+}
+
+// ══════════════════════════════
+//  UI helpers
+// ══════════════════════════════
+
+const engines = {
+  'nka-i': nkaIterative,
+  'nka-r': nkaRecursive,
+  'dka-i': dkaIterative,
+  'dka-r': dkaRecursive,
+};
+
+function runTest(id) {
+  const input = document.getElementById(id + '-input');
+  const string = input.value;
+  const { result, steps } = engines[id](string);
+
+  const resultBox = document.getElementById(id + '-result');
+  const label = string === '' ? 'ε (prázdny reťazec)' : `"${string}"`;
+  resultBox.className = 'result-box ' + (result ? 'accepted' : 'rejected');
+  resultBox.innerHTML = `
+    <span class="result-icon">${result ? '✓' : '✗'}</span>
+    <div>
+      <div class="result-string">${label}</div>
+      <div class="result-text">${result ? 'JE akceptovaný' : 'NIE JE akceptovaný'}</div>
+    </div>`;
+
+  const trace = document.getElementById(id + '-trace');
+  trace.innerHTML = '';
+  steps.forEach((step, i) => {
+    const el = document.createElement('div');
+    const isAcc = NKA_ACC.has(step.state) || DKA_ACC.has(step.state);
+    el.className = 'trace-step' + (step.accepted ? ' ok' : '');
+    el.style.animationDelay = (i * 30) + 'ms';
+    const restLabel = step.rest === '' ? 'ε' : `"${step.rest}"`;
+    el.innerHTML = `
+      <span class="trace-state ${isAcc ? 'acc' : ''}">${step.state}</span>
+      <span class="trace-arrow">→</span>
+      <span style="color:var(--text3);font-size:10px">zostatok:</span>
+      <span style="color:var(--text2)">${restLabel}</span>
+      ${step.accepted ? '<span style="color:var(--green);margin-left:auto;font-size:10px">✓ ACCEPT</span>' : ''}`;
+    trace.appendChild(el);
+  });
+}
+
+function setAndRun(id, val) {
+  document.getElementById(id + '-input').value = val;
+  runTest(id);
+}
+
+function switchTab(automaton, tab) {
+  const tabs = document.querySelectorAll(`#${automaton}-tabs .tab`);
+  tabs.forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && tab === 'iterative') || (i === 1 && tab === 'recursive'));
+  });
+  document.getElementById(automaton + '-iterative').classList.toggle('active', tab === 'iterative');
+  document.getElementById(automaton + '-recursive').classList.toggle('active', tab === 'recursive');
+}
+</script>
+</body>
+</html>
